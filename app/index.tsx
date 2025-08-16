@@ -234,7 +234,7 @@ const App = () => {
                                             value={value}
                                             onChangeText={setValue}
                                             style={styles.inputModern}
-                                            secureTextEntry
+                                            secureTextEntry={!editingId}
                                         />
                                     </View>
 
