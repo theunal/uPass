@@ -1,295 +1,392 @@
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     View,
     Text,
-    FlatList, Image,
+    TextInput,
     TouchableOpacity,
     StyleSheet,
-    TextInput,
-    Alert,
     SafeAreaView,
-    TouchableWithoutFeedback,
-    Keyboard,
     KeyboardAvoidingView,
     Platform,
+    Alert,
+    Keyboard,
+    TouchableWithoutFeedback,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
-import Svg, { Path } from 'react-native-svg';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SwipeListView } from 'react-native-swipe-list-view';
+import Toast from 'react-native-toast-message';
 
 export interface DataModel {
+    id: string;
     name: string;
     value: string;
 };
 
 const App = () => {
     const [items, setItems] = useState<DataModel[]>([]);
-    const [filtered_items, set_filtered_items] = useState<DataModel[]>([]);
     const [name, setName] = useState('');
     const [value, setValue] = useState('');
     const [search, setSearch] = useState('');
+    const [editingId, setEditingId] = useState<string | null>(null);
     const bottomSheetRef = useRef<BottomSheet>(null);
-
-    const loadData = async () => {
-        const data = await AsyncStorage.getItem('my_items');
-        if (data) {
-            const json_data = JSON.parse(data);
-            setItems(json_data);
-            set_filtered_items(json_data);
-        };
-
-        // let fake_items: DataModel[] = [];
-        // for (let i = 0; i < 500; i++) {
-        //     fake_items.push({
-        //         name: `${i + 1}. ${generateRandomName()}`,
-        //         value: generateRandomValue()
-        //     });
-        // };
-        // setItems(fake_items)
-        // await AsyncStorage.setItem('my_items', JSON.stringify(fake_items));
-    };
-
-    const generateRandomName = () => {
-        const names = ['Facebook', 'Instagram', 'Twitter', 'Gmail', 'LinkedIn', 'Github', 'Netflix', 'Amazon', 'Reddit'];
-        const randomIndex = Math.floor(Math.random() * names.length);
-        return names[randomIndex];
-    };
-
-    const generateRandomValue = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
-        let result = '';
-        for (let i = 0; i < 12; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-    };
-
-    const saveItem = async () => {
-        if (!name || !value) return Alert.alert('Lütfen tüm alanları doldurun.');
-        const newItem = { name, value };
-        const newItems = [...items, newItem];
-        await AsyncStorage.setItem('my_items', JSON.stringify(newItems));
-        setItems(newItems);
-        setName('');
-        setValue('');
-        bottomSheetRef.current?.close();
-    };
 
     useEffect(() => {
         loadData();
     }, []);
 
-    return (
-        <GestureHandlerRootView style={{
-            flex: 1,
-        }}>
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <KeyboardAvoidingView
-                    style={{ flex: 1 }}
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                >
-                    <SafeAreaView style={styles.container}>
-                        {/* Header */}
-                        <View style={styles.header}>
-                            <Text style={styles.headerText}>
-                                uPass
-                            </Text>
-                            <TouchableOpacity onPress={() => { }} style={{
-                                marginLeft: 'auto',
-                                marginRight: 5
-                            }}>
-                                <Svg viewBox="0 0 512 512" style={{
-                                    width: 20,
-                                    height: 20
-                                }}>
-                                    <Path fill="#ffffff" d="M495.9 166.6c3.2 8.7 .5 18.4-6.4 24.6l-43.3 39.4c1.1 8.3 1.7 16.8 1.7 25.4s-.6 17.1-1.7 25.4l43.3 39.4c6.9 6.2 9.6 15.9 6.4 24.6c-4.4 11.9-9.7 23.3-15.8 34.3l-4.7 8.1c-6.6 11-14 21.4-22.1 31.2c-5.9 7.2-15.7 9.6-24.5 6.8l-55.7-17.7c-13.4 10.3-28.2 18.9-44 25.4l-12.5 57.1c-2 9.1-9 16.3-18.2 17.8c-13.8 2.3-28 3.5-42.5 3.5s-28.7-1.2-42.5-3.5c-9.2-1.5-16.2-8.7-18.2-17.8l-12.5-57.1c-15.8-6.5-30.6-15.1-44-25.4L83.1 425.9c-8.8 2.8-18.6 .3-24.5-6.8c-8.1-9.8-15.5-20.2-22.1-31.2l-4.7-8.1c-6.1-11-11.4-22.4-15.8-34.3c-3.2-8.7-.5-18.4 6.4-24.6l43.3-39.4C64.6 273.1 64 264.6 64 256s.6-17.1 1.7-25.4L22.4 191.2c-6.9-6.2-9.6-15.9-6.4-24.6c4.4-11.9 9.7-23.3 15.8-34.3l4.7-8.1c6.6-11 14-21.4 22.1-31.2c5.9-7.2 15.7-9.6 24.5-6.8l55.7 17.7c13.4-10.3 28.2-18.9 44-25.4l12.5-57.1c2-9.1 9-16.3 18.2-17.8C227.3 1.2 241.5 0 256 0s28.7 1.2 42.5 3.5c9.2 1.5 16.2 8.7 18.2 17.8l12.5 57.1c15.8 6.5 30.6 15.1 44 25.4l55.7-17.7c8.8-2.8 18.6-.3 24.5 6.8c8.1 9.8 15.5 20.2 22.1 31.2l4.7 8.1c6.1 11 11.4 22.4 15.8 34.3zM256 336a80 80 0 1 0 0-160 80 80 0 1 0 0 160z" /></Svg>
-                            </TouchableOpacity>
-                        </View>
+    const loadData = async () => {
+        const data = await AsyncStorage.getItem('my_items');
+        if (data) {
+            setItems(JSON.parse(data));
+        }
+    };
 
-                        <View style={styles.searchContainer}>
+    const saveToStorage = async (newItems: DataModel[]) => {
+        setItems(newItems);
+        await AsyncStorage.setItem('my_items', JSON.stringify(newItems));
+    };
+
+    const handleAddOrUpdate = async () => {
+        if (!name || !value) return Alert.alert('Lütfen tüm alanları doldurun.');
+
+        if (editingId) {
+            // Güncelleme
+            const updatedItems = items.map(item =>
+                item.id === editingId ? { ...item, name, value } : item
+            );
+            await saveToStorage(updatedItems);
+            setEditingId(null);
+        } else {
+            // Yeni ekleme
+            const newItem: DataModel = {
+                id: Date.now().toString(),
+                name,
+                value,
+            };
+            await saveToStorage([...items, newItem]);
+        }
+
+        setName('');
+        setValue('');
+        bottomSheetRef.current?.close();
+    };
+
+    const handleDelete = async (id: string) => {
+        const filtered = items.filter(item => item.id !== id);
+        await saveToStorage(filtered);
+    };
+
+    const handleEdit = (item: DataModel) => {
+        setName(item.name);
+        setValue(item.value);
+        setEditingId(item.id);
+        bottomSheetRef.current?.expand();
+    };
+
+    const handleCopy = async (text: string) => {
+        await Clipboard.setStringAsync(text);
+        Alert.alert('Kopyalandı!');
+    };
+
+    const handleClearAll = () => {
+        Alert.alert(
+            'Tümünü sil',
+            'Tüm kayıtları silmek istediğinizden emin misiniz?',
+            [
+                { text: 'İptal', style: 'cancel' },
+                {
+                    text: 'Sil',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await saveToStorage([]);
+                    },
+                },
+            ]
+        );
+    };
+
+    const filteredItems = items.filter(item =>
+        item.name.toLowerCase().includes(search.toLowerCase())
+    );
+
+    const showToast = (message: string) => {
+        Toast.show({
+            type: 'success',
+            text1: message,
+            position: 'bottom',
+            visibilityTime: 600,
+            autoHide: true,
+            topOffset: 0,
+            bottomOffset: 50,
+        });
+    };
+
+    return (
+        <>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <KeyboardAvoidingView
+                        style={{ flex: 1 }}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+                    >
+                        <SafeAreaView style={styles.container}>
+                            {/* Header */}
+                            <View style={styles.header}>
+                                <Text style={styles.headerText}>uPass</Text>
+                                {items.length > 0 && (
+                                    <TouchableOpacity onPress={handleClearAll} style={styles.clearAllBtn}>
+                                        <Text style={styles.clearAllText}>Tümünü Sil</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            {/* Search */}
                             <TextInput
                                 placeholder="Ara..."
                                 placeholderTextColor="#aaa"
                                 value={search}
-                                onChangeText={(search: string) => {
-                                    setSearch(search);
-                                    const filtered = items.filter(item =>
-                                        item.name.toLowerCase().includes(search.toLowerCase()));
-                                    set_filtered_items(filtered);
-                                }}
+                                onChangeText={setSearch}
                                 style={styles.searchInput}
                             />
-                        </View>
 
-                        <FlatList
-                            data={filtered_items}
-                            keyExtractor={(_, i) => i.toString()}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    onPress={() => copyToClipboard(item.value)}
-                                    style={styles.card}
-                                >
-                                    <Text style={styles.title}>{item.name}</Text>
-                                    <Text style={styles.value}>****</Text>
-                                </TouchableOpacity>
-                            )}
-                        />
+                            {/* List */}
+                            <SwipeListView
+                                data={filteredItems}
+                                keyExtractor={(item: DataModel) => item.id}
+                                renderItem={({ item }: { item: DataModel }) => (
+                                    <TouchableOpacity
+                                        key={item.id}
+                                        style={styles.card}
+                                        activeOpacity={1}
+                                        onPress={() => showToast(`${item.name} tıklandı!`)}
+                                    >
+                                        <Text style={styles.title}>{item.name}</Text>
+                                        <Text style={styles.value}>****</Text>
+                                    </TouchableOpacity>
+                                )}
+                                renderHiddenItem={({ item }: { item: DataModel }) => (
+                                    <View
+                                        key={item.id}
+                                        style={styles.rowBack}
+                                    >
+                                        <TouchableOpacity
+                                            style={[styles.backBtn, styles.editBtn]}
+                                            onPress={() => handleEdit(item)}
+                                        >
+                                            <Text style={styles.backText}>Güncelle</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.backBtn, styles.deleteBtn]}
+                                            onPress={() => handleDelete(item.id)}
+                                        >
+                                            <Text style={styles.backText}>Sil</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                                rightOpenValue={-150}
+                                disableRightSwipe
+                                previewRowKey={'0'}
+                                previewOpenValue={-40}
+                                previewOpenDelay={3000}
+                            />
 
-                        <TouchableOpacity style={styles.fab}
-                            onPress={() => {
-                                bottomSheetRef.current?.expand()
-                            }}
-                        >
-                            <Text style={styles.fabText}>
-                                +
-                            </Text>
-                        </TouchableOpacity>
+                            {/* Floating + Button */}
+                            <TouchableOpacity
+                                style={styles.fab}
+                                onPress={() => bottomSheetRef.current?.expand()}
+                            >
+                                <Text style={styles.fabText}>+</Text>
+                            </TouchableOpacity>
 
-                        <BottomSheet
-                            backgroundStyle={{
-                                backgroundColor: '#4AB1D7'
-                            }}
-                            index={-1}
-                            onClose={() => {
-                                setName('');
-                                setValue('');
-                            }}
-                            ref={bottomSheetRef}
-                            snapPoints={['25%']}
-                            enablePanDownToClose={true}
-                        >
-                            <BottomSheetView style={{
-                                flex: 1,
-                                padding: 10,
-                                paddingTop: 0
-                            }}>
-                                <TextInput
-                                    placeholder="Name"
-                                    placeholderTextColor="#4AB1D7"
-                                    value={name}
-                                    onChangeText={setName}
-                                    style={styles.input}
-                                />
+                            {/* BottomSheet */}
+                            <BottomSheet
+                                ref={bottomSheetRef}
+                                index={-1}
+                                snapPoints={['35%']}
+                                enablePanDownToClose={true}
+                                onClose={() => {
+                                    setName('');
+                                    setValue('');
+                                    setEditingId(null);
+                                }}
+                            >
+                                <BottomSheetView style={styles.bottomSheetContainer}>
+                                    <Text style={styles.sheetTitle}>
+                                        {editingId ? 'Parolayı Güncelle' : 'Yeni Parola Ekle'}
+                                    </Text>
 
-                                <TextInput
-                                    placeholder="Password"
-                                    placeholderTextColor="#4AB1D7"
-                                    value={value}
-                                    onChangeText={setValue}
-                                    style={styles.input}
-                                />
+                                    <View style={styles.inputContainer}>
+                                        <TextInput
+                                            placeholder="Anahtar"
+                                            placeholderTextColor="#4AB1D7"
+                                            value={name}
+                                            onChangeText={setName}
+                                            style={styles.inputModern}
+                                        />
 
-                                <TouchableOpacity style={styles.saveBtn} onPress={saveItem}>
-                                    <Text style={styles.saveText}>Kaydet</Text>
-                                </TouchableOpacity>
-                            </BottomSheetView>
-                        </BottomSheet>
-                    </SafeAreaView>
-                </KeyboardAvoidingView>
-            </TouchableWithoutFeedback>
-        </GestureHandlerRootView>
+                                        <TextInput
+                                            placeholder="Parola"
+                                            placeholderTextColor="#4AB1D7"
+                                            value={value}
+                                            onChangeText={setValue}
+                                            style={styles.inputModern}
+                                            secureTextEntry
+                                        />
+                                    </View>
+
+                                    <TouchableOpacity
+                                        style={styles.saveBtnModern}
+                                        activeOpacity={0.8}
+                                        onPress={handleAddOrUpdate}
+                                    >
+                                        <Text style={styles.saveTextModern}>
+                                            {editingId ? 'Güncelle' : 'Kaydet'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </BottomSheetView>
+                            </BottomSheet>
+                        </SafeAreaView>
+                    </KeyboardAvoidingView>
+                </TouchableWithoutFeedback>
+            </GestureHandlerRootView>
+            <Toast />
+        </>
     );
 };
 
 export default App;
 
-const copyToClipboard = (text: string) => {
-    Clipboard.setStringAsync(text);
-    // if (Platform.OS === 'android') {
-    //     // ToastAndroid.show('Kopyalandı', ToastAndroid.SHORT);
-    // } else {
-
-    // }
-};
-
 const styles = StyleSheet.create({
-    searchContainer: {
-        position: 'fixed',
-        marginTop: 5,
-        paddingHorizontal: 10,
-        marginBottom: 10,
-    },
-    searchInput: {
-        backgroundColor: '#f0f0f0',
-        borderRadius: 8,
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        fontSize: 16,
-        color: '#333',
-    },
-    contentContainer: {
-        flex: 1,
-        padding: 36,
-        alignItems: 'center',
-    },
-    container: { flex: 1, backgroundColor: '#fff' },
+    container: { flex: 1, backgroundColor: '#f2f2f2' },
     header: {
-        display: 'flex',
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        margin: 10,
-        borderRadius: 5,
-        padding: 5,
+        padding: 15,
         backgroundColor: '#4AB1D7',
+        borderRadius: 10,
+        margin: 10,
     },
-    headerText: {
-        marginLeft: 5,
-        color: 'white',
-        fontSize: 24,
-        fontWeight: 'bold',
+    headerText: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
+    clearAllBtn: { position: 'absolute', right: 15 },
+    clearAllText: { color: '#fff', fontWeight: 'bold' },
+    searchInput: {
+        backgroundColor: '#fff',
+        marginHorizontal: 15,
+        borderRadius: 10,
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        fontSize: 16,
+        marginBottom: 10,
     },
     card: {
-        padding: 5,
-        backgroundColor: '#eee',
+        backgroundColor: '#fff',
+        marginHorizontal: 15,
         marginVertical: 5,
-        marginHorizontal: 10,
-        borderRadius: 8,
+        padding: 15,
+        borderRadius: 10,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        elevation: 3,
     },
     title: { fontSize: 18, fontWeight: 'bold' },
-    value: { fontSize: 16 },
+    value: { fontSize: 16, color: '#555', marginTop: 5 },
     fab: {
         position: 'absolute',
         bottom: 30,
-        alignSelf: 'center',
-        width: 50,
-        height: 50,
-        display: 'flex',
+        right: 30,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#4AB1D7',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#4AB1D7',
-        borderRadius: 100
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+        elevation: 5,
     },
-    fabText: { color: 'white', fontSize: 28, fontWeight: 'bold', marginBottom: 3 },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: '#00000066',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: 'white',
-        padding: 20,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-    },
+    fabText: { fontSize: 32, color: '#fff', fontWeight: 'bold' },
     input: {
-        width: '100%',           // <-- Tüm genişlik
-        backgroundColor: 'white',// <-- Beyaz arka plan
-        borderWidth: 1,
-        borderColor: '#ccc',
-        marginVertical: 10,
+        backgroundColor: '#fff',
+        padding: 12,
         borderRadius: 8,
-        padding: 10,
+        marginVertical: 10,
+        fontSize: 16,
     },
     saveBtn: {
-        marginTop: 10,
-        width: 100,
-        backgroundColor: 'white',
-        padding: 10,
+        backgroundColor: '#fff',
+        padding: 12,
         borderRadius: 8,
         alignItems: 'center',
+        marginTop: 10,
     },
-    saveText: { color: '#4AB1D7', fontWeight: 'bold' },
+    saveText: { color: '#4AB1D7', fontWeight: 'bold', fontSize: 16 },
+    rowBack: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        marginHorizontal: 15,
+        marginVertical: 5,
+    },
+    backBtn: {
+        width: 75,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 10,
+        marginLeft: 5,
+    },
+    editBtn: { backgroundColor: '#FFD700' },
+    deleteBtn: { backgroundColor: '#FF4D4D' },
+    backText: { color: '#fff', fontWeight: 'bold' },
+
+    bottomSheetContainer: {
+        flex: 1,
+        padding: 20,
+        backgroundColor: '#f7f9fc', // Açık renk arka plan
+    },
+    sheetTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#4AB1D7',
+        marginBottom: 15,
+        textAlign: 'center',
+    },
+    inputContainer: {
+        gap: 15, // Modern boşluk
+        marginBottom: 20,
+    },
+    inputModern: {
+        backgroundColor: 'white',
+        paddingHorizontal: 15,
+        paddingVertical: 12,
+        borderRadius: 12,
+        fontSize: 16,
+        borderWidth: 1,
+        borderColor: '#ddd',
+        shadowColor: '#000',
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 2, // Android gölge
+    },
+    saveBtnModern: {
+        backgroundColor: '#4AB1D7',
+        paddingVertical: 15,
+        borderRadius: 12,
+        alignItems: 'center',
+        shadowColor: '#4AB1D7',
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    saveTextModern: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '700',
+    },
 });
